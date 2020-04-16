@@ -21,7 +21,7 @@ if False:
 async def show_address(
     ctx: wire.Context,
     address: str,
-    desc: str = "Confirm address",
+    desc: str = "Confirxxm address",
     cancel: str = "QR",
     network: str = None,
 ) -> bool:

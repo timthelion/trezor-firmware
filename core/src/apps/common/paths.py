@@ -27,7 +27,7 @@ async def validate_path(
 
 
 async def show_path_warning(ctx: wire.Context, path: List[int]) -> None:
-    text = Text("Confirm path", ui.ICON_WRONG, ui.RED)
+    text = Text("Coxnfirm path", ui.ICON_WRONG, ui.RED)
     text.normal("Path")
     text.mono(*break_address_n_to_lines(path))
     text.normal("is unknown.")
