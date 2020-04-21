@@ -1,10 +1,10 @@
 import storage
 import storage.device
 import storage.sd_salt
-from trezor import config, log, loop, res, ui, utils
+from trezor import config, log, loop, res, ui, utils, wire
 from trezor.pin import show_pin_timeout
 
-from apps.common.request_pin import PinCancelled, verify_user_pin
+from apps.common.request_pin import verify_user_pin
 
 
 async def bootscreen() -> None:
@@ -16,7 +16,7 @@ async def bootscreen() -> None:
             await verify_user_pin()
             storage.init_unlocked()
             return
-        except PinCancelled as e:
+        except wire.PinCancelled as e:
             # verify_user_pin will convert a SdCardUnavailable (in case of sd salt)
             # to PinCancelled exception.
             # log the exception and retry loop
