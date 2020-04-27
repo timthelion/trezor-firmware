@@ -89,12 +89,20 @@ class DebugLink:
 
     def read_pin_encoded(self):
         state = self.state()
+        if state.matrix is None:
+            raise RuntimeError("PIN matrix does not exist (are you running Trezor T?)")
+        if state.pin is None:
+            raise RuntimeError("PIN is not set")
         return self.encode_pin(state.pin, state.matrix)
 
     def encode_pin(self, pin, matrix=None):
         """Transform correct PIN according to the displayed matrix."""
         if matrix is None:
             matrix = self.state().matrix
+            if matrix is None:
+                # we are on trezor-core
+                return pin
+
         return "".join([str(matrix.index(p) + 1) for p in pin])
 
     def read_recovery_word(self):
@@ -208,6 +216,9 @@ class DebugUI:
 
     def button_request(self, code):
         if self.input_flow is None:
+            if code == messages.ButtonRequestType.PinEntry:
+                self.debuglink.input(self.get_pin())
+                return
             # XXX
             # On Trezor T, in some rare cases, two layouts may be queuing for events at
             # the same time.  A new workflow will first send out a ButtonRequest, wait
@@ -243,10 +254,10 @@ class DebugUI:
             # respond with correct pin
             return self.debuglink.read_pin_encoded()
 
-        if self.pins == []:
+        try:
+            return self.debuglink.encode_pin(next(self.pins))
+        except StopIteration:
             raise AssertionError("PIN sequence ended prematurely")
-        else:
-            return self.debuglink.encode_pin(self.pins.pop(0))
 
     def get_passphrase(self, available_on_device):
         return self.passphrase
@@ -407,7 +418,7 @@ class TrezorClientDebugLink(TrezorClient):
         # XXX This currently only works on T1 as a response to PinMatrixRequest, but
         # if we modify trezor-core to introduce PIN prompts predictably (i.e. by
         # a new ButtonRequestType), it could also be used on TT via debug.input()
-        self.ui.pins = list(pins)
+        self.ui.pins = iter(pins)
 
     def use_passphrase(self, passphrase):
         """Respond to passphrase prompts from device with the provided passphrase."""
