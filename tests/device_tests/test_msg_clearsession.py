@@ -31,9 +31,7 @@ PIN4 = "1234"
 def test_clear_session(client):
     is_trezor1 = client.features.model == "1"
     init_responses = [
-        messages.PinMatrixRequest()
-        if is_trezor1
-        else messages.ButtonRequest(code=messages.ButtonRequestType.PinEntry),
+        messages.PinMatrixRequest() if is_trezor1 else messages.ButtonRequest(),
         messages.PassphraseRequest(),
     ]
 
