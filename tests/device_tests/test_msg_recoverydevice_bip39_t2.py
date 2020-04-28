@@ -20,8 +20,9 @@ from trezorlib import device, exceptions, messages
 
 from ..common import MNEMONIC12
 
+pytestmark = pytest.mark.skip_t1
 
-@pytest.mark.skip_t1
+
 @pytest.mark.setup_client(uninitialized=True)
 def test_tt_pin_passphrase(client):
     layout = client.debug.wait_layout
@@ -75,7 +76,6 @@ def test_tt_pin_passphrase(client):
     assert client.features.label == "hello"
 
 
-@pytest.mark.skip_t1
 @pytest.mark.setup_client(uninitialized=True)
 def test_tt_nopin_nopassphrase(client):
     layout = client.debug.wait_layout
