@@ -208,9 +208,6 @@ class DebugUI:
 
     def button_request(self, code):
         if self.input_flow is None:
-            if code == messages.ButtonRequestType.PinEntry:
-                self.debuglink.input(self.get_pin())
-                return
             # XXX
             # On Trezor T, in some rare cases, two layouts may be queuing for events at
             # the same time.  A new workflow will first send out a ButtonRequest, wait
@@ -231,8 +228,11 @@ class DebugUI:
             # This will also freeze on old bridges, where Read and Write are not
             # separate operations, because it relies on ButtonAck being sent without
             # waiting for a response.
-            self.debuglink.wait_layout()
-            self.debuglink.press_yes()
+            layout = self.debuglink.wait_layout()
+            if layout.text == "PinDialog":
+                self.debuglink.input(self.get_pin())
+            else:
+                self.debuglink.press_yes()
         elif self.input_flow is self.INPUT_FLOW_DONE:
             raise AssertionError("input flow ended prematurely")
         else:
