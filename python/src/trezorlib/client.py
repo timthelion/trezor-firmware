@@ -16,7 +16,6 @@
 
 import logging
 import os
-import sys
 import warnings
 
 from mnemonic import Mnemonic
@@ -25,16 +24,13 @@ from . import MINIMUM_FIRMWARE_VERSION, exceptions, mapping, messages, tools
 from .log import DUMP_BYTES
 from .messages import Capability
 
-if sys.version_info.major < 3:
-    raise Exception("Trezorlib does not support Python 2 anymore.")
-
 LOG = logging.getLogger(__name__)
 
 VENDORS = ("bitcointrezor.com", "trezor.io")
 MAX_PASSPHRASE_LENGTH = 50
 
 PASSPHRASE_ON_DEVICE = object()
-PASSPHRASE_TEST_PATH = tools.parse_path("44h/1h/19h/0/1337")
+PASSPHRASE_TEST_PATH = tools.parse_path("44h/1h/0h/0/0")
 
 OUTDATED_FIRMWARE_ERROR = """
 Your Trezor firmware is out of date. Update it with the following command:
@@ -103,6 +99,7 @@ class TrezorClient:
     def close(self):
         self.session_counter = max(self.session_counter - 1, 0)
         if self.session_counter == 0:
+            # TODO call EndSession here?
             self.transport.end_session()
 
     def cancel(self):
@@ -226,18 +223,12 @@ class TrezorClient:
             else:
                 return resp
 
-    @tools.session
-    def init_device(self):
-        resp = self.call_raw(messages.Initialize(session_id=self.session_id))
-        if not isinstance(resp, messages.Features):
-            raise exceptions.TrezorException("Unexpected initial response")
-        else:
-            self.features = resp
-        if self.features.vendor not in VENDORS:
+    def _refresh_features(self, features: messages.Features) -> None:
+        """Update internal fields based on passed-in Features message."""
+        if features.vendor not in VENDORS:
             raise RuntimeError("Unsupported device")
-            # A side-effect of this is a sanity check for broken protobuf definitions.
-            # If the `vendor` field doesn't exist, you probably have a mismatched
-            # checkout of trezor-common.
+
+        self.features = features
         self.version = (
             self.features.major_version,
             self.features.minor_version,
@@ -246,6 +237,32 @@ class TrezorClient:
         self.check_firmware_version(warn_only=True)
         if self.features.session_id is not None:
             self.session_id = self.features.session_id
+
+    @tools.session
+    def refresh_features(self) -> messages.Features:
+        """Reload features from the device.
+
+        Should be called after changing settings or performing operations that affect
+        device state.
+        """
+        resp = self.call_raw(messages.GetFeatures())
+        if not isinstance(resp, messages.Features):
+            raise exceptions.TrezorException("Unexpected response to GetFeatures")
+        self._refresh_features(resp)
+        return resp
+
+    @tools.session
+    def init_device(self) -> None:
+        """Initialize the session.
+
+        If a valid session_id is available, the same session will be reused. Otherwise
+        a new session is started.
+        Use `end_session()` to explicitly close the open session and request a new one.
+        """
+        resp = self.call_raw(messages.Initialize(session_id=self.session_id))
+        if not isinstance(resp, messages.Features):
+            raise exceptions.TrezorException("Unexpected response to Initialize")
+        self._refresh_features(resp)
 
     def is_outdated(self):
         if self.features.bootloader_mode:
@@ -283,12 +300,53 @@ class TrezorClient:
     def get_device_id(self):
         return self.features.device_id
 
+    def lock(self):
+        """Lock the device.
+
+        If the device does not have a PIN configured, this will do nothing.
+        Otherwise, a lock screen will be shown and the device will prompt for PIN
+        before further actions.
+
+        This call does _not_ invalidate passphrase cache. If passphrase is in use,
+        the device will not prompt for it after unlocking.
+
+        To invalidate passphrase cache, use `end_session()`. To lock _and_ invalidate
+        passphrase cache, use `clear_session()`.
+        """
+        self.call(messages.LockDevice())
+        self.refresh_features()
+
+    @tools.session
+    def ensure_unlocked(self):
+        """Ensure the device is unlocked and a passphrase is cached.
+
+        If the device is locked, this will prompt for PIN. If passphrase is enabled
+        and no passphrase is cached for the current session, the device will also
+        prompt for passphrase.
+
+        After calling this method, further actions on the device will not prompt for
+        PIN or passphrase until the device is locked or the session becomes invalid.
+        """
+        from .btc import get_address
+
+        get_address(self, "Testnet", PASSPHRASE_TEST_PATH)
+        self.refresh_features()
+
+    def end_session(self):
+        """Close the current session and clear cached passphrase.
+
+        If passphrase is enabled, further actions will prompt for it again.
+        """
+        # XXX self.call(messages.EndSession())
+        self.session_id = None
+        self.init_device()
+
     @tools.session
     def clear_session(self):
-        resp = self.call_raw(messages.LockDevice())  # TODO fix this
-        if isinstance(resp, messages.Success):
-            self.session_id = None
-            self.init_device()
-            return resp.message
-        else:
-            return resp
+        """Close the current session and lock the device.
+
+        Equivalent to calling `end_session()` and `lock()`.
+        """
+        # call LockDevice manually to save one refresh_features() call
+        self.call(messages.LockDevice())
+        self.end_session()
