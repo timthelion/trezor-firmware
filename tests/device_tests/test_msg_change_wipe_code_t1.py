@@ -78,7 +78,6 @@ def test_set_remove_wipe_code(client):
     _set_wipe_code(client, PIN4, WIPE_CODE4)
 
     # Check that there's wipe code protection now.
-    client.init_device()
     assert client.features.wipe_code_protection is True
 
     # Check that the wipe code is correct.
@@ -88,7 +87,6 @@ def test_set_remove_wipe_code(client):
     _set_wipe_code(client, PIN4, WIPE_CODE6)
 
     # Check that there's still wipe code protection now.
-    client.init_device()
     assert client.features.wipe_code_protection is True
 
     # Check that the wipe code is correct.
@@ -100,7 +98,6 @@ def test_set_remove_wipe_code(client):
         device.change_wipe_code(client, remove=True)
 
     # Check that there's no wipe code protection now.
-    client.init_device()
     assert client.features.wipe_code_protection is False
 
 
@@ -123,7 +120,7 @@ def test_set_wipe_code_mismatch(client):
             device.change_wipe_code(client)
 
     # Check that there is no wipe code protection.
-    client.init_device()
+    client.refresh_features()
     assert client.features.wipe_code_protection is False
 
 
@@ -147,7 +144,7 @@ def test_set_wipe_code_to_pin(client):
             device.change_wipe_code(client)
 
     # Check that there is no wipe code protection.
-    client.init_device()
+    client.refresh_features()
     assert client.features.wipe_code_protection is False
 
 
@@ -170,7 +167,7 @@ def test_set_pin_to_wipe_code(client):
             device.change_pin(client)
 
     # Check that there is no PIN protection.
-    client.init_device()
+    client.refresh_features()
     assert client.features.pin_protection is False
     resp = client.call_raw(messages.GetAddress())
     assert isinstance(resp, messages.Address)
@@ -195,5 +192,5 @@ def test_set_wipe_code_invalid(client, invalid_wipe_code):
     assert isinstance(ret, messages.Failure)
 
     # Check that there's still no wipe code protection.
-    client.init_device()
+    client.refresh_features()
     assert client.features.wipe_code_protection is False

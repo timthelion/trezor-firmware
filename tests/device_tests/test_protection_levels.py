@@ -271,7 +271,8 @@ class TestProtectionLevels:
             client.set_expected_responses([proto.PinMatrixRequest(), proto.Address()])
             btc.get_address(client, "Testnet", [0])
 
-        client.init_device()
+        client.end_session()
+
         assert client.features.pin_cached is True
         with client:
             client.set_expected_responses([proto.Address()])

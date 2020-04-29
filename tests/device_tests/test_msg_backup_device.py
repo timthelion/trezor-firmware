@@ -57,12 +57,12 @@ def test_backup_bip39(client):
                 messages.ButtonRequest(code=B.Success),
                 messages.ButtonRequest(code=B.Success),
                 messages.Success(),
+                messages.Features(),
             ]
         )
         device.backup(client)
 
     assert mnemonic == MNEMONIC12
-    client.init_device()
     assert client.features.initialized is True
     assert client.features.needs_backup is False
     assert client.features.unfinished_backup is False
@@ -119,11 +119,11 @@ def test_backup_slip39_basic(client):
                 messages.ButtonRequest(code=B.Success),
                 messages.ButtonRequest(code=B.Success),
                 messages.Success(),
+                messages.Features(),
             ]
         )
         device.backup(client)
 
-    client.init_device()
     assert client.features.initialized is True
     assert client.features.needs_backup is False
     assert client.features.unfinished_backup is False
@@ -238,11 +238,11 @@ def test_backup_slip39_advanced(client):
                 messages.ButtonRequest(code=B.Success),  # show seeds ends here
                 messages.ButtonRequest(code=B.Success),
                 messages.Success(),
+                messages.Features(),
             ]
         )
         device.backup(client)
 
-    client.init_device()
     assert client.features.initialized is True
     assert client.features.needs_backup is False
     assert client.features.unfinished_backup is False

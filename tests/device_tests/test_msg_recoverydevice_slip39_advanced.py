@@ -108,7 +108,7 @@ def test_abort(client):
         client.set_input_flow(input_flow)
         with pytest.raises(exceptions.Cancelled):
             device.recover(client, pin_protection=False, label="label")
-        client.init_device()
+        client.refresh_features()
         assert client.features.initialized is False
 
 
@@ -130,7 +130,6 @@ def test_noabort(client):
     with client:
         client.set_input_flow(input_flow)
         device.recover(client, pin_protection=False, label="label")
-        client.init_device()
         assert client.features.initialized is True
 
 

@@ -60,7 +60,6 @@ def test_set_pin(client):
         )
         device.change_pin(client)
 
-    client.init_device()
     assert client.features.pin_protection is True
     _check_pin(client, PIN6)
 
@@ -81,7 +80,6 @@ def test_change_pin(client):
         device.change_pin(client)
 
     # Check that there's still PIN protection now
-    client.init_device()
     assert client.features.pin_protection is True
     # Check that the PIN is correct
     _check_pin(client, PIN6)
@@ -103,7 +101,6 @@ def test_remove_pin(client):
         device.change_pin(client, remove=True)
 
     # Check that there's no PIN protection now
-    client.init_device()
     assert client.features.pin_protection is False
     _check_no_pin(client)
 
@@ -136,7 +133,6 @@ def test_set_failed(client):
         device.change_pin(client)
 
     # Check that there's still no PIN protection now
-    client.init_device()
     assert client.features.pin_protection is False
     _check_no_pin(client)
 
@@ -172,6 +168,6 @@ def test_change_failed(client):
         device.change_pin(client)
 
     # Check that there's still old PIN protection
-    client.init_device()
+    client.refresh_features()
     assert client.features.pin_protection is True
     _check_pin(client, PIN4)

@@ -63,8 +63,7 @@ class BackgroundDeviceHandler:
     def features(self):
         if self.task is not None:
             raise RuntimeError("Cannot query features while task is running")
-        self.client.init_device()
-        return self.client.features
+        return self.client.refresh_features()
 
     def debuglink(self):
         return self.client.debug

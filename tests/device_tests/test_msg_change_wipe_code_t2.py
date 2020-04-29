@@ -16,8 +16,7 @@
 
 import pytest
 
-from trezorlib import btc, device, messages
-from trezorlib.client import PASSPHRASE_TEST_PATH
+from trezorlib import device, messages
 from trezorlib.exceptions import Cancelled, TrezorFailure
 
 PIN4 = "1234"
@@ -28,7 +27,6 @@ pytestmark = pytest.mark.skip_t1
 
 
 def _check_wipe_code(client, pin, wipe_code):
-    client.init_device()
     assert client.features.wipe_code_protection is True
 
     # Try to change the PIN to the current wipe code value. The operation should fail.
@@ -44,9 +42,7 @@ def _check_wipe_code(client, pin, wipe_code):
 def _ensure_unlocked(client, pin):
     with client:
         client.use_pin_sequence([pin])
-        btc.get_address(client, "Testnet", PASSPHRASE_TEST_PATH)
-
-    client.init_device()
+        client.ensure_unlocked()
 
 
 @pytest.mark.setup_client(pin=PIN4)
@@ -64,7 +60,6 @@ def test_set_remove_wipe_code(client):
         client.use_pin_sequence([PIN4, WIPE_CODE4, WIPE_CODE4])
         device.change_wipe_code(client)
 
-    client.init_device()
     assert client.features.wipe_code_protection is True
     _check_wipe_code(client, PIN4, WIPE_CODE4)
 
@@ -76,7 +71,6 @@ def test_set_remove_wipe_code(client):
         client.use_pin_sequence([PIN4, WIPE_CODE6, WIPE_CODE6])
         device.change_wipe_code(client)
 
-    client.init_device()
     assert client.features.wipe_code_protection is True
     _check_wipe_code(client, PIN4, WIPE_CODE6)
 
@@ -88,7 +82,6 @@ def test_set_remove_wipe_code(client):
         client.use_pin_sequence([PIN4])
         device.change_wipe_code(client, remove=True)
 
-    client.init_device()
     assert client.features.wipe_code_protection is False
 
 
@@ -115,7 +108,6 @@ def test_set_wipe_code_mismatch(client):
         device.change_wipe_code(client)
 
     # Check that there's still no wipe code protection now
-    client.init_device()
     assert client.features.wipe_code_protection is False
 
 
@@ -130,7 +122,6 @@ def test_set_wipe_code_to_pin(client):
         client.use_pin_sequence([PIN4, PIN4, WIPE_CODE4, WIPE_CODE4])
         device.change_wipe_code(client)
 
-    client.init_device()
     assert client.features.wipe_code_protection is True
     _check_wipe_code(client, PIN4, WIPE_CODE4)
 

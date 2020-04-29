@@ -138,7 +138,7 @@ def test_set_mismatch(client):
         device.change_pin(client)
 
     # Check that there's still no PIN protection now
-    client.init_device()
+    client.refresh_features()
     assert client.features.pin_protection is False
     _check_no_pin(client)
 
@@ -162,7 +162,7 @@ def test_change_mismatch(client):
         device.change_pin(client)
 
     # Check that there's still old PIN protection
-    client.init_device()
+    client.refresh_features()
     assert client.features.pin_protection is True
     _check_pin(client, PIN4)
 
@@ -187,7 +187,7 @@ def test_set_invalid(client, invalid_pin):
     assert isinstance(ret, messages.Failure)
 
     # Check that there's still no PIN protection now
-    client.init_device()
+    client.refresh_features()
     assert client.features.pin_protection is False
     _check_no_pin(client)
 
